@@ -185,10 +185,10 @@
         "maxTokens": 300
       },
       "pricePer1MTokens": {
-        "input": "[fill from Claude docs]",
-        "output": "[fill from Claude docs]",
-        "cacheRead": "[fill from Claude docs]",
-        "cacheWrite5m": "[fill from Claude docs]"
+        "input": 0.1,
+        "output": 0.5,
+        "cacheRead": 0.01,
+        "cacheWrite5m": 0.125
       }
     },
     {
@@ -205,10 +205,10 @@
         "maxTokens": 300
       },
       "pricePer1MTokens": {
-        "input": "[fill from Claude docs]",
-        "output": "[fill from Claude docs]",
-        "cacheRead": "[fill from Claude docs]",
-        "cacheWrite5m": "[fill from Claude docs]"
+        "input": 2.0,
+        "output": 10.0,
+        "cacheRead": 0.1,
+        "cacheWrite5m": 2.5
       }
     }
   ],
@@ -276,7 +276,7 @@
     "eotTimeoutMs": 5000
   },
   "rates": {
-    "asOf": "2026-09-11",
+    "asOf": "2026-11-18",
     "source": "https://deepgram.com/pricing",
     "promoEnds": "2026-09-14",
     "agentPerMinByTier": {
@@ -293,8 +293,8 @@
     },
     "redactionPerMin": 0.002,
     "keytermPerMin": 0.0013,
-    "diarizationPerMin": 0,
-    "llmAsOf": "[fill from Claude docs]",
+    "diarizationPerMin": 0.002,
+    "llmAsOf": "2026-11-18",
     "llmSource": "https://docs.claude.com/en/docs/about-claude/pricing"
   },
   "defaults": {
