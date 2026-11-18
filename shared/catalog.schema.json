@@ -1,0 +1,184 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/dg-coreylweathers/voice-comic-pipecat/shared/catalog.schema.json",
+  "title": "Voice Comic catalog",
+  "description": "Single source of truth for every model the demo can run, its public list price, the operator modes and scenes, and the Flux turn-taking dial ranges. Read by server/vc/catalog.py (pydantic) and web/src/lib/catalog.ts. The server serves it at GET /api/catalog with event + booth added. Prompt text is NOT here: it lives in server/vc/prompts.py.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "listen", "speak", "think", "modes", "experiences", "flux", "rates", "defaults"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": 1 },
+    "listen": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/ListenModel" } },
+    "speak": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/SpeakModel" } },
+    "think": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/ThinkModel" } },
+    "modes": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/Mode" } },
+    "experiences": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/Experience" } },
+    "flux": { "$ref": "#/$defs/FluxDials" },
+    "rates": { "$ref": "#/$defs/Rates" },
+    "defaults": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["listen", "speak", "think", "mode"],
+      "properties": {
+        "listen": { "$ref": "#/$defs/Key" },
+        "speak": { "$ref": "#/$defs/Key" },
+        "think": { "$ref": "#/$defs/Key" },
+        "mode": { "$ref": "#/$defs/Key" }
+      }
+    }
+  },
+  "$defs": {
+    "Key": { "type": "string", "pattern": "^[a-z0-9-]{1,40}$" },
+    "Placeholder": { "const": "[fill from Claude docs]", "description": "Unverified price. Pricing code treats it as unknown and shows 'price pending'; CI does not fail on it, the release checklist does." },
+    "Money": { "oneOf": [{ "type": "number", "minimum": 0 }, { "$ref": "#/$defs/Placeholder" }] },
+    "ListenModel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "family", "version", "model", "label", "role", "ratePerMin", "blurb"],
+      "properties": {
+        "key": { "$ref": "#/$defs/Key" },
+        "family": { "enum": ["flux", "nova"] },
+        "version": { "enum": ["v1", "v2"], "description": "Deepgram endpoint generation: v2 = /v2/listen (Flux), v1 = /v1/listen (Nova)." },
+        "model": { "type": "string" },
+        "language": { "enum": ["en", "multi"], "description": "Nova only (Flux encodes the language in the model id)." },
+        "label": { "type": "string" },
+        "role": { "enum": ["primary", "tap"], "description": "primary: may feed the user aggregator (Flux only, because only Flux owns turn detection). tap: runs only in the sibling ParallelPipeline branch (Redact, Two speakers) or alone in Duet." },
+        "ratePerMin": { "type": "number", "minimum": 0 },
+        "regularPerMin": { "type": "number", "minimum": 0 },
+        "diarizedKey": { "$ref": "#/$defs/Key", "description": "The Nova-3 twin used for the tap branch and Duet when this primary model is selected." },
+        "blurb": { "type": "string" }
+      }
+    },
+    "SpeakModel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "family", "version", "model", "label", "ratePer1k"],
+      "properties": {
+        "key": { "$ref": "#/$defs/Key" },
+        "family": { "enum": ["flux", "aura"], "description": "flux -> DeepgramFluxTTSService, aura -> DeepgramTTSService; the two are members of one ServiceSwitcher." },
+        "version": { "enum": ["v1", "v2"] },
+        "model": { "type": "string", "description": "Voice id passed as the service's `voice` setting." },
+        "label": { "type": "string" },
+        "ratePer1k": { "type": "number", "minimum": 0 },
+        "regularPer1k": { "type": "number", "minimum": 0 }
+      }
+    },
+    "ThinkModel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "provider", "model", "label", "tier", "llm", "pricePer1MTokens"],
+      "properties": {
+        "key": { "$ref": "#/$defs/Key" },
+        "provider": { "const": "anthropic" },
+        "model": { "type": "string", "description": "Anthropic model id, undated." },
+        "label": { "type": "string" },
+        "tier": { "enum": ["standard", "advanced"], "description": "The Voice Agent API tier this model would bill at; used only for the 'what the Voice Agent API would have charged' comparison." },
+        "llm": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["effort", "thinking", "maxTokens"],
+          "description": "Sent IN FULL with every model switch (LLMUpdateSettingsFrame) so one model's setting never leaks into the other: Sonnet 5.5 rejects thinking=disabled.",
+          "properties": {
+            "effort": { "oneOf": [{ "enum": ["low", "medium", "high", "xhigh", "max"] }, { "type": "null" }] },
+            "thinking": {
+              "oneOf": [
+                { "type": "null" },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["type"],
+                  "properties": { "type": { "enum": ["disabled", "enabled", "between_tools", "adaptive"] }, "budgetTokens": { "type": "integer", "minimum": 1024 } }
+                }
+              ]
+            },
+            "maxTokens": { "type": "integer", "minimum": 64, "maximum": 4096 }
+          }
+        },
+        "pricePer1MTokens": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["input", "output", "cacheRead", "cacheWrite5m"],
+          "properties": {
+            "input": { "$ref": "#/$defs/Money" },
+            "output": { "$ref": "#/$defs/Money" },
+            "cacheRead": { "$ref": "#/$defs/Money" },
+            "cacheWrite5m": { "$ref": "#/$defs/Money" }
+          }
+        }
+      }
+    },
+    "Mode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "label", "short", "badges", "blurb"],
+      "properties": {
+        "key": { "$ref": "#/$defs/Key" },
+        "label": { "type": "string" },
+        "short": { "type": "string" },
+        "badges": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+        "blurb": { "type": "string" }
+      }
+    },
+    "Experience": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "label", "short", "blurb"],
+      "properties": {
+        "key": { "enum": ["agent", "duet"] },
+        "label": { "type": "string" },
+        "short": { "type": "string" },
+        "badges": { "type": "array", "items": { "type": "string" } },
+        "blurb": { "type": "string" }
+      }
+    },
+    "Range": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["min", "max", "step", "default"],
+      "properties": { "min": { "type": "number" }, "max": { "type": "number" }, "step": { "type": "number", "exclusiveMinimum": 0 }, "default": { "type": "number" } }
+    },
+    "FluxDials": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["eotThreshold", "eagerEotThreshold", "eotTimeoutMs"],
+      "description": "Toolbar slider ranges. Both thresholds are live Flux Configure (STTUpdateSettingsFrame, no reconnect). eager must stay below eot; the server clamps.",
+      "properties": {
+        "eotThreshold": { "$ref": "#/$defs/Range" },
+        "eagerEotThreshold": { "$ref": "#/$defs/Range" },
+        "eotTimeoutMs": { "type": "integer", "minimum": 500 }
+      }
+    },
+    "Rates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["asOf", "source", "promoEnds", "agentPerMinByTier", "redactionPerMin", "keytermPerMin", "llmAsOf", "llmSource"],
+      "properties": {
+        "asOf": { "type": "string", "description": "Date the Deepgram rates were last checked against `source`." },
+        "source": { "type": "string" },
+        "promoEnds": { "type": "string", "description": "Kept for the copied pricing.ts: after this date Flux TTS and the Voice Agent tiers use their regular rate." },
+        "agentPerMinByTier": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["standard", "advanced"],
+          "description": "Voice Agent API per-minute rates. Pipecat does not pay these; the cost modal shows them as 'what the Voice Agent API would have charged for the same connection time'.",
+          "properties": {
+            "standard": { "$ref": "#/$defs/TierRate" },
+            "advanced": { "$ref": "#/$defs/TierRate" }
+          }
+        },
+        "redactionPerMin": { "type": "number", "minimum": 0 },
+        "keytermPerMin": { "type": "number", "minimum": 0 },
+        "diarizationPerMin": { "type": "number", "minimum": 0 },
+        "llmAsOf": { "oneOf": [{ "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" }, { "$ref": "#/$defs/Placeholder" }] },
+        "llmSource": { "type": "string" }
+      }
+    },
+    "TierRate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "promo", "regular"],
+      "properties": { "label": { "type": "string" }, "promo": { "type": "number", "minimum": 0 }, "regular": { "type": "number", "minimum": 0 } }
+    }
+  }
+}

@@ -1,0 +1,292 @@
+{
+  "description": "One valid example per vc.* message and the SessionConfig. Both test suites check these against shared/protocol.schema.json and their own types; extend it when the protocol changes.",
+  "sessionConfig": {
+    "experience": "agent",
+    "listenKey": "flux-en",
+    "speakKey": "flux-kit",
+    "thinkKey": "claude-haiku-5-5",
+    "modeKey": "visitor",
+    "keyterms": [
+      "Deepgram",
+      "Flux",
+      "Pipecat"
+    ],
+    "redact": false,
+    "speakers": false,
+    "quiet": false,
+    "flux": {
+      "eotThreshold": 0.7,
+      "eagerEotThreshold": 0.5
+    }
+  },
+  "server": [
+    {
+      "type": "vc.session",
+      "id": "s-3fa2",
+      "protocolVersion": 1,
+      "experience": "agent",
+      "config": {
+        "experience": "agent",
+        "listenKey": "flux-en",
+        "speakKey": "flux-kit",
+        "thinkKey": "claude-haiku-5-5",
+        "modeKey": "visitor",
+        "keyterms": [
+          "Deepgram",
+          "Flux",
+          "Pipecat"
+        ],
+        "redact": false,
+        "speakers": false,
+        "quiet": false,
+        "flux": {
+          "eotThreshold": 0.7,
+          "eagerEotThreshold": 0.5
+        }
+      },
+      "pipeline": [
+        {
+          "name": "flux_stt",
+          "cls": "DeepgramFluxSTTService",
+          "branch": "main",
+          "model": "flux-general-en",
+          "settings": {
+            "eot_threshold": 0.7,
+            "eager_eot_threshold": 0.5
+          }
+        },
+        {
+          "name": "tts",
+          "cls": "ServiceSwitcher",
+          "branch": "switcher",
+          "model": "flux-kit-en",
+          "active": true
+        }
+      ]
+    },
+    {
+      "type": "vc.config",
+      "config": {
+        "experience": "agent",
+        "listenKey": "flux-en",
+        "speakKey": "flux-kit",
+        "thinkKey": "claude-sonnet-5-5",
+        "modeKey": "visitor",
+        "keyterms": [
+          "Deepgram",
+          "Flux",
+          "Pipecat"
+        ],
+        "redact": false,
+        "speakers": false,
+        "quiet": false,
+        "flux": {
+          "eotThreshold": 0.7,
+          "eagerEotThreshold": 0.5
+        }
+      },
+      "changes": [
+        {
+          "field": "thinkKey",
+          "frame": "LLMUpdateSettingsFrame",
+          "live": true
+        }
+      ],
+      "pipeline": [
+        {
+          "name": "flux_stt",
+          "cls": "DeepgramFluxSTTService",
+          "branch": "main",
+          "model": "flux-general-en",
+          "settings": {
+            "eot_threshold": 0.7,
+            "eager_eot_threshold": 0.5
+          }
+        },
+        {
+          "name": "tts",
+          "cls": "ServiceSwitcher",
+          "branch": "switcher",
+          "model": "flux-kit-en",
+          "active": true
+        }
+      ]
+    },
+    {
+      "type": "vc.turn",
+      "panelId": "u-0-3",
+      "epoch": 0,
+      "turnIndex": 3,
+      "event": "Update",
+      "transcript": "hello flux",
+      "words": [
+        {
+          "word": "hello",
+          "start": 0.32,
+          "end": 0.61,
+          "confidence": 0.98
+        },
+        {
+          "word": "flux",
+          "start": 0.66,
+          "end": 0.94,
+          "confidence": 0.95
+        }
+      ],
+      "endOfTurnConfidence": 0.41,
+      "model": "flux-general-en"
+    },
+    {
+      "type": "vc.eager",
+      "panelId": "u-0-3",
+      "phase": "predicted",
+      "transcript": "hello flux"
+    },
+    {
+      "type": "vc.eager",
+      "panelId": "u-0-3",
+      "phase": "released",
+      "heldMs": 310
+    },
+    {
+      "type": "vc.layer",
+      "panelId": "n-0-7",
+      "key": "nova-3-en",
+      "model": "nova-3",
+      "isFinal": true,
+      "speechFinal": true,
+      "transcript": "my name is [NAME_GIVEN_1]",
+      "words": [
+        {
+          "word": "my",
+          "start": 1.0,
+          "end": 1.2,
+          "speaker": 0
+        }
+      ],
+      "speaker": 0,
+      "redacted": true
+    },
+    {
+      "type": "vc.layer.status",
+      "state": "open",
+      "key": "nova-3-en",
+      "model": "nova-3",
+      "redact": [
+        "pii",
+        "pci",
+        "numbers"
+      ],
+      "diarize": false
+    },
+    {
+      "type": "vc.intel",
+      "panelId": "u-0-3",
+      "topics": [
+        "Voice applications"
+      ],
+      "intents": [
+        "Ask a question"
+      ]
+    },
+    {
+      "type": "vc.panel",
+      "assistantTurn": 2,
+      "at": 0,
+      "mood": "smug",
+      "sfx": "POW",
+      "caption": "too fast for you"
+    },
+    {
+      "type": "vc.latency",
+      "assistantTurn": 2,
+      "ms": 412,
+      "from": "flux_end_of_turn",
+      "eager": true
+    },
+    {
+      "type": "vc.latency.breakdown",
+      "assistantTurn": 2,
+      "totalMs": 690,
+      "userTurnMs": 2100,
+      "parts": [
+        {
+          "key": "llm_ttfb",
+          "label": "LLM TTFB",
+          "owner": "AnthropicLLMService#0",
+          "ms": 380
+        },
+        {
+          "key": "tts_ttfb",
+          "label": "TTS TTFB",
+          "owner": "DeepgramFluxTTSService#0",
+          "ms": 120
+        }
+      ]
+    },
+    {
+      "type": "vc.usage",
+      "usage": {
+        "experience": "agent",
+        "connectedAt": 1763500000000,
+        "connectedMs": 42000,
+        "connectedMsByTier": {
+          "standard": 42000
+        },
+        "sttSecondsByKey": {
+          "flux-en": 40.5,
+          "nova-3-en": 12.0
+        },
+        "redactSeconds": 12.0,
+        "keytermSeconds": 40.5,
+        "ttsCharsByKey": {
+          "flux-kit": 180
+        },
+        "ttsCharsByFamily": {
+          "flux": 180,
+          "aura": 0
+        },
+        "llmByKey": {
+          "claude-haiku-5-5": {
+            "inputTokens": 5200,
+            "outputTokens": 140,
+            "cacheReadTokens": 4100,
+            "cacheWriteTokens": 900,
+            "calls": 5,
+            "withdrawnCalls": 1
+          }
+        },
+        "server": true
+      }
+    },
+    {
+      "type": "vc.error",
+      "message": "Unknown speak model",
+      "source": "controls"
+    }
+  ],
+  "client": [
+    {
+      "type": "vc.update",
+      "thinkKey": "claude-sonnet-5-5",
+      "flux": {
+        "eagerEotThreshold": 0.4
+      }
+    },
+    {
+      "type": "vc.update",
+      "redact": true,
+      "keyterms": [
+        "Deepgram"
+      ]
+    },
+    {
+      "type": "vc.say",
+      "id": "k-1763500000123",
+      "text": "What does Flux cost per hour?"
+    },
+    {
+      "type": "vc.reset"
+    }
+  ]
+}

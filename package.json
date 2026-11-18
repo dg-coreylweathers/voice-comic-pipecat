@@ -1,0 +1,10 @@
+{
+  "name": "voice-comic-pipecat-scripts",
+  "private": true,
+  "type": "module",
+  "description": "Browser and screenshot harnesses in scripts/ (Playwright). The client lives in web/, the server in server/.",
+  "engines": { "node": ">=24" },
+  "devDependencies": {
+    "playwright": "1.62.1"
+  }
+}

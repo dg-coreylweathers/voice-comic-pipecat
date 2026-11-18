@@ -1,0 +1,44 @@
+[project]
+name = "voice-comic-pipecat"
+version = "0.1.0"
+description = "Voice Comic on Pipecat: a live comic strip drawn from what a Pipecat pipeline perceives (Deepgram Flux STT/TTS + Claude)."
+license = "MIT"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  # Pinned: pipecat.expressive is alpha and changes between releases (see docs/ARCH.md).
+  "pipecat-ai[deepgram,anthropic,websocket,silero,tone]==1.16.0",
+  "fastapi>=0.115.6,<1",
+  "uvicorn[standard]>=0.32,<1",
+  "pydantic>=2.8,<3",
+  "aiohttp>=3.10,<4",
+  "loguru>=0.7,<1",
+]
+
+[dependency-groups]
+dev = [
+  "pytest>=8.3,<9",
+  "pytest-asyncio>=0.24,<2",
+  "httpx>=0.27,<1",
+  "jsonschema>=4.23,<5",
+  "ruff>=0.8,<1",
+]
+
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["vc"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+extend-exclude = [".venv"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "ASYNC"]

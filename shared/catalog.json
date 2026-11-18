@@ -1,0 +1,306 @@
+{
+  "$schema": "./catalog.schema.json",
+  "schemaVersion": 1,
+  "listen": [
+    {
+      "key": "flux-en",
+      "family": "flux",
+      "version": "v2",
+      "model": "flux-general-en",
+      "label": "Flux STT · English",
+      "role": "primary",
+      "ratePerMin": 0.0065,
+      "regularPerMin": 0.0077,
+      "diarizedKey": "nova-3-en",
+      "blurb": "Conversational STT with model-native end-of-turn, eager end-of-turn, word timings, live keyterm updates."
+    },
+    {
+      "key": "flux-multi",
+      "family": "flux",
+      "version": "v2",
+      "model": "flux-general-multi",
+      "label": "Flux STT · Multilingual",
+      "role": "primary",
+      "ratePerMin": 0.0078,
+      "diarizedKey": "nova-3-multi",
+      "blurb": "10 languages in one stream with per-turn language detection."
+    },
+    {
+      "key": "nova-3-en",
+      "family": "nova",
+      "version": "v1",
+      "model": "nova-3",
+      "language": "en",
+      "label": "Nova-3 · English",
+      "role": "tap",
+      "ratePerMin": 0.0048,
+      "regularPerMin": 0.0077,
+      "blurb": "Highest-accuracy general STT: smart formatting, full PII/PCI redaction, speaker diarization. Runs as the transcript tap beside Flux."
+    },
+    {
+      "key": "nova-3-multi",
+      "family": "nova",
+      "version": "v1",
+      "model": "nova-3",
+      "language": "multi",
+      "label": "Nova-3 · Code-switching",
+      "role": "tap",
+      "ratePerMin": 0.0058,
+      "regularPerMin": 0.0092,
+      "blurb": "Mid-sentence language switching. Runs as the transcript tap beside Flux."
+    }
+  ],
+  "speak": [
+    {
+      "key": "flux-kit",
+      "family": "flux",
+      "version": "v2",
+      "model": "flux-kit-en",
+      "label": "Flux TTS · Kit",
+      "ratePer1k": 0,
+      "regularPer1k": 0.045
+    },
+    {
+      "key": "flux-alexis",
+      "family": "flux",
+      "version": "v2",
+      "model": "flux-alexis-en",
+      "label": "Flux TTS · Alexis",
+      "ratePer1k": 0,
+      "regularPer1k": 0.045
+    },
+    {
+      "key": "flux-drew",
+      "family": "flux",
+      "version": "v2",
+      "model": "flux-drew-en",
+      "label": "Flux TTS · Drew",
+      "ratePer1k": 0,
+      "regularPer1k": 0.045
+    },
+    {
+      "key": "flux-sienna",
+      "family": "flux",
+      "version": "v2",
+      "model": "flux-sienna-en",
+      "label": "Flux TTS · Sienna",
+      "ratePer1k": 0,
+      "regularPer1k": 0.045
+    },
+    {
+      "key": "flux-marcus",
+      "family": "flux",
+      "version": "v2",
+      "model": "flux-marcus-en",
+      "label": "Flux TTS · Marcus",
+      "ratePer1k": 0,
+      "regularPer1k": 0.045
+    },
+    {
+      "key": "flux-priya",
+      "family": "flux",
+      "version": "v2",
+      "model": "flux-priya-en",
+      "label": "Flux TTS · Priya",
+      "ratePer1k": 0,
+      "regularPer1k": 0.045
+    },
+    {
+      "key": "flux-conor",
+      "family": "flux",
+      "version": "v2",
+      "model": "flux-conor-en",
+      "label": "Flux TTS · Conor",
+      "ratePer1k": 0,
+      "regularPer1k": 0.045
+    },
+    {
+      "key": "flux-maeve",
+      "family": "flux",
+      "version": "v2",
+      "model": "flux-maeve-en",
+      "label": "Flux TTS · Maeve",
+      "ratePer1k": 0,
+      "regularPer1k": 0.045
+    },
+    {
+      "key": "aura-2-thalia",
+      "family": "aura",
+      "version": "v1",
+      "model": "aura-2-thalia-en",
+      "label": "Aura-2 · Thalia",
+      "ratePer1k": 0.03
+    },
+    {
+      "key": "aura-2-andromeda",
+      "family": "aura",
+      "version": "v1",
+      "model": "aura-2-andromeda-en",
+      "label": "Aura-2 · Andromeda",
+      "ratePer1k": 0.03
+    },
+    {
+      "key": "aura-2-apollo",
+      "family": "aura",
+      "version": "v1",
+      "model": "aura-2-apollo-en",
+      "label": "Aura-2 · Apollo",
+      "ratePer1k": 0.03
+    },
+    {
+      "key": "aura-2-arcas",
+      "family": "aura",
+      "version": "v1",
+      "model": "aura-2-arcas-en",
+      "label": "Aura-2 · Arcas",
+      "ratePer1k": 0.03
+    },
+    {
+      "key": "aura-2-helena",
+      "family": "aura",
+      "version": "v1",
+      "model": "aura-2-helena-en",
+      "label": "Aura-2 · Helena",
+      "ratePer1k": 0.03
+    },
+    {
+      "key": "aura-2-orion",
+      "family": "aura",
+      "version": "v1",
+      "model": "aura-2-orion-en",
+      "label": "Aura-2 · Orion",
+      "ratePer1k": 0.03
+    }
+  ],
+  "think": [
+    {
+      "key": "claude-haiku-5-5",
+      "provider": "anthropic",
+      "model": "claude-haiku-5-5",
+      "label": "Claude Haiku 5.5",
+      "tier": "standard",
+      "llm": {
+        "effort": "low",
+        "thinking": null,
+        "maxTokens": 300
+      },
+      "pricePer1MTokens": {
+        "input": "[fill from Claude docs]",
+        "output": "[fill from Claude docs]",
+        "cacheRead": "[fill from Claude docs]",
+        "cacheWrite5m": "[fill from Claude docs]"
+      }
+    },
+    {
+      "key": "claude-sonnet-5-5",
+      "provider": "anthropic",
+      "model": "claude-sonnet-5-5",
+      "label": "Claude Sonnet 5.5",
+      "tier": "advanced",
+      "llm": {
+        "effort": null,
+        "thinking": {
+          "type": "between_tools"
+        },
+        "maxTokens": 300
+      },
+      "pricePer1MTokens": {
+        "input": "[fill from Claude docs]",
+        "output": "[fill from Claude docs]",
+        "cacheRead": "[fill from Claude docs]",
+        "cacheWrite5m": "[fill from Claude docs]"
+      }
+    }
+  ],
+  "modes": [
+    {
+      "key": "visitor",
+      "label": "Visitor chat",
+      "short": "Visitor",
+      "badges": [
+        "VISITOR"
+      ],
+      "blurb": "Playful banter with whoever holds the mic."
+    },
+    {
+      "key": "showcase",
+      "label": "Showcase · presenter",
+      "short": "Showcase",
+      "badges": [
+        "STAFF",
+        "VISITOR"
+      ],
+      "blurb": "Flux narrates the Deepgram or Pipecat feature that just happened."
+    },
+    {
+      "key": "qa",
+      "label": "Q&A about Deepgram",
+      "short": "Q&A",
+      "badges": [
+        "VISITOR"
+      ],
+      "blurb": "Short factual answers from a fact sheet; admits what it does not know."
+    }
+  ],
+  "experiences": [
+    {
+      "key": "agent",
+      "label": "Talk to Flux",
+      "short": "Flux chat",
+      "blurb": "One person talks with Flux: a Pipecat pipeline runs Flux STT, Claude and Flux TTS, and the robot draws the other half."
+    },
+    {
+      "key": "duet",
+      "label": "Two people talking",
+      "short": "Two people",
+      "badges": [
+        "SPEAKER 1",
+        "SPEAKER 2"
+      ],
+      "blurb": "No agent. Nova-3 diarization tells the two of you apart and draws each of you separately."
+    }
+  ],
+  "flux": {
+    "eotThreshold": {
+      "min": 0.5,
+      "max": 0.9,
+      "step": 0.05,
+      "default": 0.7
+    },
+    "eagerEotThreshold": {
+      "min": 0.3,
+      "max": 0.9,
+      "step": 0.05,
+      "default": 0.5
+    },
+    "eotTimeoutMs": 5000
+  },
+  "rates": {
+    "asOf": "2026-09-11",
+    "source": "https://deepgram.com/pricing",
+    "promoEnds": "2026-09-14",
+    "agentPerMinByTier": {
+      "standard": {
+        "label": "Standard",
+        "promo": 0.056,
+        "regular": 0.075
+      },
+      "advanced": {
+        "label": "Advanced",
+        "promo": 0.122,
+        "regular": 0.163
+      }
+    },
+    "redactionPerMin": 0.002,
+    "keytermPerMin": 0.0013,
+    "diarizationPerMin": 0,
+    "llmAsOf": "[fill from Claude docs]",
+    "llmSource": "https://docs.claude.com/en/docs/about-claude/pricing"
+  },
+  "defaults": {
+    "listen": "flux-en",
+    "speak": "flux-kit",
+    "think": "claude-haiku-5-5",
+    "mode": "visitor"
+  }
+}

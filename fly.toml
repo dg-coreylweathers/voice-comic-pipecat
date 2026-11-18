@@ -1,0 +1,46 @@
+# Fly.io config for Voice Comic on Pipecat. Deployed by .github/workflows/ci.yml on push to main.
+app = "dg-voice-comic-pipecat"
+primary_region = "ewr"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8080"
+  DATA_DIR = "/data"
+  AUDIO_TTL_HOURS = "24"
+  STRIP_TTL_HOURS = "2"
+  EVENT_NAME = "booth"
+  MAX_SESSIONS = "4"
+  # BOOTH_MODE = "1"        # force booth mode for a public venue (WARNING logs, no audio stored, strips expire)
+  # MIP_OPT_OUT = "1"       # Deepgram model-improvement opt-out on every Deepgram service
+  # Secrets (fly secrets set): DEEPGRAM_API_KEY, ANTHROPIC_API_KEY, SESSION_SECRET; optional AGENT_PROMPT
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "off"     # booth demo: no cold starts mid-pitch
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+  [http_service.concurrency]
+    type = "connections"
+    soft_limit = 20
+    hard_limit = 40
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "30s"         # pipecat + onnx models import before /health answers
+    method = "GET"
+    path = "/health"
+
+[[mounts]]
+  source = "voice_comic_pipecat_data"
+  destination = "/data"
+  initial_size = "1gb"
+
+[[vm]]
+  size = "shared-cpu-2x"         # two vCPUs for the perception ONNX models + Silero VAD next to the event loop
+  memory = "2gb"

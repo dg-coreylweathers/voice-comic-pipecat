@@ -1,0 +1,349 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/dg-coreylweathers/voice-comic-pipecat/shared/protocol.schema.json",
+  "title": "Voice Comic app protocol (vc.*) on top of RTVI 2.3.0",
+  "description": "The app-level messages between the browser and the Pipecat bot. Everything else (user-input, bot-output, speaking events, metrics) is standard RTVI and is NOT redefined here. Server messages travel as the `data` of an RTVI `server-message` (RTVIServerMessageFrame); client messages travel as an RTVI `client-message` whose type is our `type` and whose data is the remaining fields. SessionConfig travels once, base64url-encoded JSON in the `cfg` query parameter of WS /api/agent. Field names are camelCase on the wire. Checked by server/tests/test_protocol_schema.py (pydantic models in server/vc/protocol.py) and web/src/lib/protocol.test.ts (types in web/src/lib/protocol.ts). Bump `protocolVersion` on any breaking change.",
+  "protocolVersion": 1,
+  "oneOf": [{ "$ref": "#/$defs/ServerMessage" }, { "$ref": "#/$defs/ClientMessage" }, { "$ref": "#/$defs/SessionConfig" }],
+  "$defs": {
+    "Key": { "type": "string", "pattern": "^[a-z0-9-]{1,40}$" },
+    "PanelId": { "type": "string", "maxLength": 64, "description": "Server-owned panel id convention. Flux turns: `u-{epoch}-{turnIndex}`; Nova tap / duet chunks: `n-{epoch}-{seq}`; typed lines: the client-chosen `k-...` id echoed back." },
+    "Word": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["word", "start", "end"],
+      "properties": {
+        "word": { "type": "string" },
+        "start": { "type": "number", "description": "Seconds from the start of the STT stream (per socket; resets on reconnect, hence `epoch`)." },
+        "end": { "type": "number" },
+        "confidence": { "type": "number" },
+        "speaker": { "type": "integer", "minimum": 0, "description": "Nova diarization only." }
+      }
+    },
+    "FluxDialValues": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "eotThreshold": { "type": "number", "minimum": 0.5, "maximum": 0.9 },
+        "eagerEotThreshold": { "type": "number", "minimum": 0.3, "maximum": 0.9 }
+      }
+    },
+    "SessionConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["experience", "listenKey", "speakKey", "thinkKey", "modeKey", "keyterms", "redact", "speakers", "quiet"],
+      "description": "Everything needed to BUILD the pipeline. Sent once as the `cfg` query parameter; an experience change is a new connection.",
+      "properties": {
+        "experience": { "enum": ["agent", "duet"] },
+        "listenKey": { "$ref": "#/$defs/Key" },
+        "speakKey": { "$ref": "#/$defs/Key" },
+        "thinkKey": { "$ref": "#/$defs/Key" },
+        "modeKey": { "$ref": "#/$defs/Key" },
+        "keyterms": { "type": "array", "maxItems": 20, "items": { "type": "string", "minLength": 1, "maxLength": 40 } },
+        "redact": { "type": "boolean" },
+        "speakers": { "type": "boolean", "description": "Two speakers: run the Nova tap branch with diarize=true beside Flux." },
+        "quiet": { "type": "boolean", "description": "Skip the greeting." },
+        "flux": { "$ref": "#/$defs/FluxDialValues" }
+      }
+    },
+    "PipelineStage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "cls", "branch"],
+      "description": "One processor as the X-ray draws it. Replaces the old 'Settings JSON'. Never contains secrets.",
+      "properties": {
+        "name": { "type": "string" },
+        "cls": { "type": "string", "description": "Python class name, e.g. DeepgramFluxSTTService." },
+        "branch": { "enum": ["main", "nova", "switcher", "observer"] },
+        "model": { "type": "string" },
+        "active": { "type": "boolean", "description": "ServiceSwitcher members: which one is live." },
+        "settings": { "type": "object", "description": "Public, non-secret settings (thresholds, redact, diarize, voice)." }
+      }
+    },
+    "ConfigChange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["field", "frame", "live"],
+      "properties": {
+        "field": { "type": "string", "description": "SessionConfig field that changed, or flux.eotThreshold / flux.eagerEotThreshold." },
+        "frame": { "type": "string", "description": "Pipecat frame the server queued, e.g. STTUpdateSettingsFrame, ManuallySwitchServiceFrame, LLMUpdateSettingsFrame, branch-rebuild." },
+        "live": { "type": "boolean", "description": "true = applied in place (Flux Configure, prompt swap); false = the service reconnects (Flux model, TTS voice/expressivity) and loses acoustic state." }
+      }
+    },
+    "TokenUsage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["inputTokens", "outputTokens", "cacheReadTokens", "cacheWriteTokens", "calls", "withdrawnCalls"],
+      "properties": {
+        "inputTokens": { "type": "integer", "minimum": 0 },
+        "outputTokens": { "type": "integer", "minimum": 0 },
+        "cacheReadTokens": { "type": "integer", "minimum": 0 },
+        "cacheWriteTokens": { "type": "integer", "minimum": 0 },
+        "calls": { "type": "integer", "minimum": 0 },
+        "withdrawnCalls": { "type": "integer", "minimum": 0, "description": "Speculative (eager) inferences discarded by UserTurnResponseCancelFrame: paid for, never spoken." }
+      }
+    },
+    "UsageReport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["experience", "connectedAt", "connectedMs", "connectedMsByTier", "sttSecondsByKey", "redactSeconds", "keytermSeconds", "ttsCharsByKey", "ttsCharsByFamily", "llmByKey", "server"],
+      "description": "Server-metered, running totals for one connection. Built by vc.pipeline.observers.usage from MetricsFrame (STTUsageMetricsData, TTSUsageMetricsData, LLMUsageMetricsData). Saved with the strip; replaces the client estimate.",
+      "properties": {
+        "experience": { "enum": ["agent", "duet"] },
+        "connectedAt": { "type": "integer", "description": "Wall clock ms." },
+        "disconnectedAt": { "type": "integer" },
+        "connectedMs": { "type": "integer", "minimum": 0 },
+        "connectedMsByTier": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": { "standard": { "type": "integer", "minimum": 0 }, "advanced": { "type": "integer", "minimum": 0 } },
+          "description": "Connection time attributed to the active LLM's Voice Agent tier. Only feeds the 'Voice Agent API equivalent' comparison. Zero in a duet."
+        },
+        "sttSecondsByKey": { "type": "object", "additionalProperties": { "type": "number", "minimum": 0 }, "description": "Audio seconds sent per listen catalog key (Flux primary and Nova tap separately)." },
+        "redactSeconds": { "type": "number", "minimum": 0 },
+        "keytermSeconds": { "type": "number", "minimum": 0 },
+        "ttsCharsByKey": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0 } },
+        "ttsCharsByFamily": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["flux", "aura"],
+          "properties": { "flux": { "type": "integer", "minimum": 0 }, "aura": { "type": "integer", "minimum": 0 } }
+        },
+        "llmByKey": { "type": "object", "additionalProperties": { "$ref": "#/$defs/TokenUsage" } },
+        "server": { "const": true }
+      }
+    },
+    "PanelMood": { "enum": ["neutral", "happy", "smug", "laughing", "surprised", "thinking", "upset"], "description": "Robot expression chosen by Claude. smug and laughing map to the cast's happy face until C2 adds art." },
+    "PanelSfx": { "enum": ["POW", "BOING", "HA HA", "WOW!", "ZAP", "HMM", "DING"], "description": "Each has a 24 kHz one-shot in server/vc/assets/sfx/ played into the bot audio, and a glyph in the panel." },
+    "LatencyPart": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "label", "owner", "ms"],
+      "properties": { "key": { "type": "string" }, "label": { "type": "string" }, "owner": { "type": "string" }, "ms": { "type": "number", "minimum": 0 } }
+    },
+
+    "ServerMessage": {
+      "oneOf": [
+        { "$ref": "#/$defs/VcSession" },
+        { "$ref": "#/$defs/VcConfig" },
+        { "$ref": "#/$defs/VcTurn" },
+        { "$ref": "#/$defs/VcEager" },
+        { "$ref": "#/$defs/VcLayer" },
+        { "$ref": "#/$defs/VcLayerStatus" },
+        { "$ref": "#/$defs/VcIntel" },
+        { "$ref": "#/$defs/VcPanel" },
+        { "$ref": "#/$defs/VcLatency" },
+        { "$ref": "#/$defs/VcLatencyBreakdown" },
+        { "$ref": "#/$defs/VcUsage" },
+        { "$ref": "#/$defs/VcError" }
+      ]
+    },
+    "VcSession": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id", "protocolVersion", "experience", "config", "pipeline"],
+      "description": "First message after RTVI client-ready. `id` is the metering key the client sends with POST /api/strips.",
+      "properties": {
+        "type": { "const": "vc.session" },
+        "id": { "type": "string" },
+        "protocolVersion": { "const": 1 },
+        "experience": { "enum": ["agent", "duet"] },
+        "config": { "$ref": "#/$defs/SessionConfig" },
+        "pipeline": { "type": "array", "items": { "$ref": "#/$defs/PipelineStage" } }
+      }
+    },
+    "VcConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "config", "changes", "pipeline"],
+      "description": "Sent after every vc.update / vc.reset is applied: the effective config, what was done, and the refreshed pipeline view. Replaces the Voice Agent *Updated acks; there is no ack timeout.",
+      "properties": {
+        "type": { "const": "vc.config" },
+        "config": { "$ref": "#/$defs/SessionConfig" },
+        "changes": { "type": "array", "items": { "$ref": "#/$defs/ConfigChange" } },
+        "pipeline": { "type": "array", "items": { "$ref": "#/$defs/PipelineStage" } }
+      }
+    },
+    "VcTurn": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "panelId", "epoch", "turnIndex", "event", "transcript", "words", "model"],
+      "description": "Flux turn layer from turn_tap, built from frame.result (raw TurnInfo) on the primary Flux STT. Drives the live visitor bubble, pace, shout and ZOOM.",
+      "properties": {
+        "type": { "const": "vc.turn" },
+        "panelId": { "$ref": "#/$defs/PanelId" },
+        "epoch": { "type": "integer", "minimum": 0, "description": "Bumped each time the Flux socket (re)connects, because turn_index restarts per socket." },
+        "turnIndex": { "type": "integer", "minimum": 0 },
+        "event": { "enum": ["StartOfTurn", "Update", "EagerEndOfTurn", "TurnResumed", "EndOfTurn"] },
+        "transcript": { "type": "string" },
+        "words": { "type": "array", "items": { "$ref": "#/$defs/Word" } },
+        "endOfTurnConfidence": { "type": "number" },
+        "languages": { "type": "array", "items": { "type": "string" } },
+        "model": { "type": "string" }
+      }
+    },
+    "VcEager": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "panelId", "phase"],
+      "description": "Ghost bubble (beat 2). predicted: on_eager_end_of_turn. withdrawn: on_turn_resumed, or a UserTurnResponseCancelFrame seen by the eager observer. released: the held reply was let through (UserStoppedSpeakingFrame after a prediction). Nothing from the held reply itself is ever sent before release.",
+      "properties": {
+        "type": { "const": "vc.eager" },
+        "panelId": { "$ref": "#/$defs/PanelId" },
+        "phase": { "enum": ["predicted", "withdrawn", "released"] },
+        "transcript": { "type": "string" },
+        "reason": { "enum": ["turn_resumed", "cancelled", "timeout"] },
+        "heldMs": { "type": "number", "minimum": 0, "description": "released only: ms between predicted and released (the latency eager bought)." }
+      }
+    },
+    "VcLayer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "panelId", "key", "model", "isFinal", "transcript", "words", "redacted"],
+      "description": "Nova-3 tap (Redact / Two speakers) and the whole duet. Emitted by nova_tap, which consumes the Nova TranscriptionFrame/InterimTranscriptionFrame so they never reach the user aggregator. In a diarized final, each contiguous speaker run is its own message.",
+      "properties": {
+        "type": { "const": "vc.layer" },
+        "panelId": { "$ref": "#/$defs/PanelId" },
+        "key": { "$ref": "#/$defs/Key" },
+        "model": { "type": "string" },
+        "isFinal": { "type": "boolean" },
+        "speechFinal": { "type": "boolean" },
+        "transcript": { "type": "string" },
+        "words": { "type": "array", "items": { "$ref": "#/$defs/Word" } },
+        "speaker": { "type": "integer", "minimum": 0 },
+        "redacted": { "type": "boolean" }
+      }
+    },
+    "VcLayerStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "state"],
+      "properties": {
+        "type": { "const": "vc.layer.status" },
+        "state": { "enum": ["open", "closed", "error"] },
+        "key": { "$ref": "#/$defs/Key" },
+        "model": { "type": "string" },
+        "redact": { "type": "array", "items": { "type": "string" } },
+        "diarize": { "type": "boolean" },
+        "message": { "type": "string" }
+      }
+    },
+    "VcIntel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "panelId", "topics", "intents"],
+      "description": "themes_intel: /v1/read topics + intents on a finished visitor turn, fire-and-forget, off the critical path. Mood comes from perception now; sentiment is optional and only for the X-ray.",
+      "properties": {
+        "type": { "const": "vc.intel" },
+        "panelId": { "$ref": "#/$defs/PanelId" },
+        "topics": { "type": "array", "maxItems": 3, "items": { "type": "string" } },
+        "intents": { "type": "array", "maxItems": 3, "items": { "type": "string" } },
+        "sentiment": { "enum": ["positive", "neutral", "negative"] },
+        "score": { "type": "number" }
+      }
+    },
+    "VcPanel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "assistantTurn", "at", "mood"],
+      "description": "Beat 3: Claude's inline <panel mood=... sfx=... caption=.../> tag, stripped from the spoken text by panel_tags. Fires at LLM-output time, ahead of the audio: the client applies it when the bot-output spoken progress of that assistant turn reaches `at`.",
+      "properties": {
+        "type": { "const": "vc.panel" },
+        "assistantTurn": { "type": "integer", "minimum": 1, "description": "Count of LLMFullResponseStartFrame seen downstream of the LLM on this connection; the client counts onBotLlmStarted the same way." },
+        "at": { "type": "integer", "minimum": 0, "description": "Character offset in the turn's spoken (tag-free) text where the tag appeared." },
+        "mood": { "$ref": "#/$defs/PanelMood" },
+        "sfx": { "$ref": "#/$defs/PanelSfx" },
+        "caption": { "type": "string", "maxLength": 40 }
+      }
+    },
+    "VcLatency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "assistantTurn", "ms", "from"],
+      "description": "The 'replied in X.Xs' stamp. TurnLatencyObserver (custom): Flux end of turn (ProposedUserStoppedSpeakingFrame) to BotStartedSpeakingFrame. For a typed line: LLMMessagesAppendFrame to BotStartedSpeakingFrame.",
+      "properties": {
+        "type": { "const": "vc.latency" },
+        "assistantTurn": { "type": "integer", "minimum": 1 },
+        "ms": { "type": "number", "minimum": 0 },
+        "from": { "enum": ["flux_end_of_turn", "typed_line"] },
+        "eager": { "type": "boolean", "description": "The reply was a released speculation." }
+      }
+    },
+    "VcLatencyBreakdown": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "assistantTurn", "totalMs", "parts"],
+      "description": "Beat 5: UserBotLatencyObserver on_latency_breakdown (VAD stop to bot speech), forwarded verbatim-ish for the latency pill and X-ray.",
+      "properties": {
+        "type": { "const": "vc.latency.breakdown" },
+        "assistantTurn": { "type": "integer", "minimum": 1 },
+        "totalMs": { "type": "number", "minimum": 0 },
+        "userTurnMs": { "type": "number", "minimum": 0 },
+        "parts": { "type": "array", "items": { "$ref": "#/$defs/LatencyPart" } }
+      }
+    },
+    "VcUsage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "usage"],
+      "description": "Throttled to at most one per second while metrics flow, plus one on disconnect.",
+      "properties": {
+        "type": { "const": "vc.usage" },
+        "usage": { "$ref": "#/$defs/UsageReport" }
+      }
+    },
+    "VcError": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "message"],
+      "properties": {
+        "type": { "const": "vc.error" },
+        "message": { "type": "string", "description": "Human-readable, already scrubbed (no keys, no transcript text)." },
+        "source": { "type": "string" },
+        "fatal": { "type": "boolean" }
+      }
+    },
+
+    "ClientMessage": {
+      "oneOf": [{ "$ref": "#/$defs/VcUpdate" }, { "$ref": "#/$defs/VcSay" }, { "$ref": "#/$defs/VcReset" }]
+    },
+    "VcUpdate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "description": "Any subset of the mutable config. experience is NOT here: a scene change is a new connection. Server answers with vc.config (or vc.error).",
+      "properties": {
+        "type": { "const": "vc.update" },
+        "listenKey": { "$ref": "#/$defs/Key" },
+        "speakKey": { "$ref": "#/$defs/Key" },
+        "thinkKey": { "$ref": "#/$defs/Key" },
+        "modeKey": { "$ref": "#/$defs/Key" },
+        "keyterms": { "type": "array", "maxItems": 20, "items": { "type": "string", "minLength": 1, "maxLength": 40 } },
+        "redact": { "type": "boolean" },
+        "speakers": { "type": "boolean" },
+        "flux": { "$ref": "#/$defs/FluxDialValues" }
+      }
+    },
+    "VcSay": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id", "text"],
+      "description": "Operator typed line: LLMMessagesAppendFrame([user], run_llm=True). Not echoed back as user text; the client drew it already. Refused in a duet.",
+      "properties": {
+        "type": { "const": "vc.say" },
+        "id": { "type": "string", "pattern": "^k-[A-Za-z0-9-]{1,40}$" },
+        "text": { "type": "string", "minLength": 1, "maxLength": 400 }
+      }
+    },
+    "VcReset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "description": "New conversation without reconnecting: InterruptionFrame, LLMMessagesUpdateFrame(messages=[]), then the greeting unless quiet. In a duet it only bumps the panel epoch.",
+      "properties": {
+        "type": { "const": "vc.reset" },
+        "quiet": { "type": "boolean" }
+      }
+    }
+  }
+}

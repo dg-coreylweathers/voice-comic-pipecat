@@ -1,0 +1,30 @@
+{
+  "name": "voice-comic-pipecat-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Voice Comic client: React + SVG comic engine on @pipecat-ai/client-js (RTVI) over the Pipecat WebSocket transport.",
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test --experimental-strip-types 'src/**/*.test.ts'"
+  },
+  "dependencies": {
+    "@pipecat-ai/client-js": "~1.16.0",
+    "@pipecat-ai/websocket-transport": "~1.8.2",
+    "qrcode": "^1.5.4",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@vitejs/plugin-react": "^4.4.0",
+    "typescript": "^5.8.0",
+    "vite": "^6.3.0"
+  }
+}
